@@ -2,8 +2,8 @@ import pandas as pd
 import streamlit as st
 
 # Load the dataset
-file_path = "F:/Download/ABC Billing report through 02112024 by DOS compiled.csv"
-df = pd.read_csv(file_path)
+file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/YOUR_CSV_FILE.csv"
+df = pd.read_csv(file_url)
 
 # Clean column names
 df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")

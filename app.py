@@ -52,6 +52,19 @@ try:
             total_claims=("charge_code", "count")
         ).reset_index()
 
+        # ✅ Add Grand Total Row
+        grand_total = pd.DataFrame({
+            "charge_code": ["GRAND TOTAL"],
+            "charge_description": [""],
+            "avg_paid": [payer_summary["avg_paid"].mean()],
+            "total_paid": [payer_summary["total_paid"].sum()],
+            "total_claims": [payer_summary["total_claims"].sum()]
+        })
+
+        # ✅ Append Grand Total to Summary Table
+        payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
+
+        # ✅ Display Summary Table
         st.subheader(f"Summary for {selected_insurance}")
         st.write(payer_summary)
 

@@ -73,7 +73,6 @@ try:
         procedure_options = payer_summary["procedure_display"].unique()
 
         selected_procedure = st.selectbox("Select Procedure (CPT - Description):", procedure_options)
-        entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=10)
 
         # ✅ Extract Selected CPT Code & Procedure
         selected_cpt_code, selected_procedure_desc = selected_procedure.split(" - ", 1)
@@ -83,6 +82,12 @@ try:
             (payer_summary["charge_code"] == selected_cpt_code) &
             (payer_summary["charge_description"] == selected_procedure_desc)
         ]
+
+        # ✅ Get the default total_claims for the selected procedure
+        default_claims = int(filtered_data["total_claims"].values[0]) if not filtered_data.empty else 1
+
+        # 📌 **Enter Estimated Procedure Volume (Defaults to total_claims)**
+        entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=default_claims)
 
         # ✅ Calculate Projected Revenue
         if not filtered_data.empty:

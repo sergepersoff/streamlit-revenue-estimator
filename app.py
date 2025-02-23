@@ -41,7 +41,7 @@ try:
         # ✅ Filter data based on selected date range
         df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
 
-        # 📌 Select Insurance & Procedure
+        # 📌 Select Insurance
         insurance_options = df_filtered["insurance"].unique()
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
 
@@ -68,13 +68,21 @@ try:
         st.subheader(f"Summary for {selected_insurance}")
         st.write(payer_summary)
 
-        # 📌 Select Procedure for Revenue Projection
-        procedure_options = payer_summary["charge_description"].unique()
-        selected_procedure = st.selectbox("Select Procedure:", procedure_options)
+        # 📌 **Update Procedure Selection to Show CPT Code**
+        payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
+        procedure_options = payer_summary["procedure_display"].unique()
+
+        selected_procedure = st.selectbox("Select Procedure (CPT - Description):", procedure_options)
         entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=10)
 
+        # ✅ Extract Selected CPT Code & Procedure
+        selected_cpt_code, selected_procedure_desc = selected_procedure.split(" - ", 1)
+
         # ✅ Filter Data for Selected Procedure
-        filtered_data = payer_summary[payer_summary["charge_description"] == selected_procedure]
+        filtered_data = payer_summary[
+            (payer_summary["charge_code"] == selected_cpt_code) &
+            (payer_summary["charge_description"] == selected_procedure_desc)
+        ]
 
         # ✅ Calculate Projected Revenue
         if not filtered_data.empty:

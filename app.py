@@ -5,7 +5,7 @@ import streamlit as st
 file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/ABC%20Billing%20report%20through%2002112024%20by%20DOS%20compiled.csv"
 
 try:
-    df = pd.read_csv(file_url)  # ✅ Load CSV
+    df = pd.read_csv(file_url, dtype={"charge_code": str})  # ✅ Force 'charge_code' (CPT) as string
     df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  # ✅ Normalize column names
 
     # ✅ Convert the 'DATE' column to datetime format
@@ -20,6 +20,9 @@ try:
     if not required_columns.issubset(df.columns):
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
+        # ✅ Force 'charge_code' (CPT) as a string again, just in case
+        df["charge_code"] = df["charge_code"].astype(str)
+
         # ✅ Streamlit App Layout
         st.title("Revenue Estimation Tool")
 

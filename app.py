@@ -6,37 +6,49 @@ file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-est
 
 # Try loading the CSV with error handling
 try:
-    df = pd.read_csv(file_url)
+    df = pd.read_csv(file_url, parse_dates=["date"])  # ✅ Ensure 'date' is parsed correctly
 
     # ✅ Clean column names
     df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
 
     # ✅ Ensure required columns exist
-    required_columns = {"insurance", "charge_description", "paid"}
+    required_columns = {"insurance", "charge_description", "charge_code", "paid", "date"}
     if not required_columns.issubset(df.columns):
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
-        # ✅ Calculate average payment per procedure per insurance
-        avg_payment = df.groupby(["insurance", "charge_description"]).agg(
-            avg_paid=("paid", "mean")
-        ).reset_index()
-
         # ✅ Streamlit App Layout
         st.title("Revenue Estimation Tool")
 
-        # Select Insurance & Procedure
-        insurance_options = avg_payment["insurance"].unique()
-        procedure_options = avg_payment["charge_description"].unique()
+        # 📅 Date Range Selection
+        st.sidebar.header("Filter by Date")
+        min_date = df["date"].min()
+        max_date = df["date"].max()
+        start_date, end_date = st.sidebar.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
 
+        # ✅ Filter data based on selected date range
+        df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
+
+        # 📌 Select Insurance & Procedure
+        insurance_options = df_filtered["insurance"].unique()
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
+
+        # ✅ Summary Table for Selected Insurance
+        payer_summary = df_filtered[df_filtered["insurance"] == selected_insurance].groupby(["charge_code", "charge_description"]).agg(
+            avg_paid=("paid", "mean"),
+            total_paid=("paid", "sum"),
+            total_claims=("charge_code", "count")
+        ).reset_index()
+
+        st.subheader(f"Summary for {selected_insurance}")
+        st.write(payer_summary)
+
+        # 📌 Select Procedure for Revenue Projection
+        procedure_options = payer_summary["charge_description"].unique()
         selected_procedure = st.selectbox("Select Procedure:", procedure_options)
         entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=10)
 
-        # ✅ Filter Data
-        filtered_data = avg_payment[
-            (avg_payment["insurance"] == selected_insurance) & 
-            (avg_payment["charge_description"] == selected_procedure)
-        ]
+        # ✅ Filter Data for Selected Procedure
+        filtered_data = payer_summary[payer_summary["charge_description"] == selected_procedure]
 
         # ✅ Calculate Projected Revenue
         if not filtered_data.empty:

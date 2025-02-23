@@ -55,12 +55,16 @@ try:
             total_claims=("charge_code", "count")
         ).reset_index()
 
+        # ✅ Round avg_paid and total_paid to 1 decimal place
+        payer_summary["avg_paid"] = payer_summary["avg_paid"].round(1)
+        payer_summary["total_paid"] = payer_summary["total_paid"].round(1)
+
         # ✅ Add Grand Total Row
         grand_total = pd.DataFrame({
             "charge_code": ["GRAND TOTAL"],
             "charge_description": [""],
-            "avg_paid": [payer_summary["avg_paid"].mean()],
-            "total_paid": [payer_summary["total_paid"].sum()],
+            "avg_paid": [payer_summary["avg_paid"].mean().round(1)],
+            "total_paid": [payer_summary["total_paid"].sum().round(1)],
             "total_claims": [payer_summary["total_claims"].sum()]
         })
 

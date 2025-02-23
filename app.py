@@ -4,12 +4,16 @@ import streamlit as st
 # ✅ Load the dataset from GitHub
 file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/ABC%20Billing%20report%20through%2002112024%20by%20DOS%20compiled.csv"
 
-# Try loading the CSV with error handling
 try:
-    df = pd.read_csv(file_url, parse_dates=["date"])  # ✅ Ensure 'date' is parsed correctly
+    df = pd.read_csv(file_url)  # ✅ Load CSV
+    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  # ✅ Normalize column names
 
-    # ✅ Clean column names
-    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+    # ✅ Convert the 'DATE' column to datetime format
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    else:
+        st.error("Missing required column: 'DATE'. Please check your dataset.")
+        st.stop()
 
     # ✅ Ensure required columns exist
     required_columns = {"insurance", "charge_description", "charge_code", "paid", "date"}

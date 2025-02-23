@@ -45,8 +45,11 @@ try:
         insurance_options = df_filtered["insurance"].unique()
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
 
+        # ✅ Filter Procedures Based on Selected Insurance
+        df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
+
         # ✅ Summary Table for Selected Insurance (EXCLUDES $0 Payments)
-        payer_summary = df_filtered[df_filtered["insurance"] == selected_insurance].groupby(["charge_code", "charge_description"]).agg(
+        payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(
             avg_paid=("paid", "mean"),
             total_paid=("paid", "sum"),
             total_claims=("charge_code", "count")
@@ -68,9 +71,9 @@ try:
         st.subheader(f"Summary for {selected_insurance}")
         st.write(payer_summary)
 
-        # 📌 **Update Procedure Selection to Show CPT Code**
+        # 📌 **Update Procedure Selection to Only Show Procedures for Selected Insurance**
         payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
-        procedure_options = payer_summary["procedure_display"].unique()
+        procedure_options = payer_summary[payer_summary["charge_code"] != "GRAND TOTAL"]["procedure_display"].unique()  # Exclude Grand Total from dropdown
 
         selected_procedure = st.selectbox("Select Procedure (CPT - Description):", procedure_options)
 

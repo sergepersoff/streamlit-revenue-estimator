@@ -23,6 +23,12 @@ try:
         # ✅ Force 'charge_code' (CPT) as a string again, just in case
         df["charge_code"] = df["charge_code"].astype(str)
 
+        # ✅ Ensure 'paid' is always positive
+        df["paid"] = df["paid"].abs()
+
+        # ✅ Remove procedures where 'paid' = 0
+        df = df[df["paid"] > 0]
+
         # ✅ Streamlit App Layout
         st.title("Revenue Estimation Tool")
 
@@ -39,7 +45,7 @@ try:
         insurance_options = df_filtered["insurance"].unique()
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
 
-        # ✅ Summary Table for Selected Insurance
+        # ✅ Summary Table for Selected Insurance (EXCLUDES $0 Payments)
         payer_summary = df_filtered[df_filtered["insurance"] == selected_insurance].groupby(["charge_code", "charge_description"]).agg(
             avg_paid=("paid", "mean"),
             total_paid=("paid", "sum"),

@@ -20,9 +20,6 @@ try:
     if not required_columns.issubset(df.columns):
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
-        # ✅ Force 'charge_code' (CPT) as a string again, just in case
-        df["charge_code"] = df["charge_code"].astype(str)
-
         # ✅ Ensure 'paid' is always positive
         df["paid"] = df["paid"].abs()
 
@@ -48,8 +45,8 @@ try:
         # ✅ Filter Procedures Based on Selected Insurance
         df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
 
-        # ✅ Summary Table for Selected Insurance (EXCLUDES $0 Payments)
-        payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(
+        # ✅ Summary Table for Selected Insurance (EXCLUDES `charge_description`)
+        payer_summary = df_insurance_filtered.groupby(["charge_code"]).agg(
             avg_paid=("paid", "mean"),
             total_paid=("paid", "sum"),
             total_claims=("charge_code", "count")
@@ -62,7 +59,6 @@ try:
         # ✅ Add Grand Total Row
         grand_total = pd.DataFrame({
             "charge_code": ["GRAND TOTAL"],
-            "charge_description": [""],
             "avg_paid": [payer_summary["avg_paid"].mean().round(1)],
             "total_paid": [payer_summary["total_paid"].sum().round(1)],
             "total_claims": [payer_summary["total_claims"].sum()]
@@ -71,13 +67,21 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # ✅ Display Summary Table
+        # ✅ Display Summary Table (Without `charge_description`)
         st.subheader(f"Summary for {selected_insurance}")
-        st.write(payer_summary)
+        st.write(
+            payer_summary.rename(columns={
+                "charge_code": "CPT Code",
+                "avg_paid": "Avg Paid ($)",
+                "total_paid": "Total Paid ($)",
+                "total_claims": "Claims"
+            })
+        )
 
-        # 📌 **Update Procedure Selection to Only Show Procedures for Selected Insurance**
-        payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
-        procedure_options = payer_summary[payer_summary["charge_code"] != "GRAND TOTAL"]["procedure_display"].unique()  # Exclude Grand Total from dropdown
+        # 📌 **Update Procedure Selection to Show CPT Code + Description**
+        procedure_mapping = df_insurance_filtered[["charge_code", "charge_description"]].drop_duplicates()
+        procedure_mapping["procedure_display"] = procedure_mapping["charge_code"] + " - " + procedure_mapping["charge_description"]
+        procedure_options = procedure_mapping["procedure_display"].unique()
 
         selected_procedure = st.selectbox("Select Procedure (CPT - Description):", procedure_options)
 
@@ -85,10 +89,7 @@ try:
         selected_cpt_code, selected_procedure_desc = selected_procedure.split(" - ", 1)
 
         # ✅ Filter Data for Selected Procedure
-        filtered_data = payer_summary[
-            (payer_summary["charge_code"] == selected_cpt_code) &
-            (payer_summary["charge_description"] == selected_procedure_desc)
-        ]
+        filtered_data = payer_summary[payer_summary["charge_code"] == selected_cpt_code]
 
         # ✅ Get the default total_claims for the selected procedure
         default_claims = int(filtered_data["total_claims"].values[0]) if not filtered_data.empty else 1

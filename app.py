@@ -52,9 +52,14 @@ try:
             total_claims=("charge_code", "count")
         ).reset_index()
 
-        # ✅ Round avg_paid and total_paid to 1 decimal place
+        # ✅ Round numeric fields
         payer_summary["avg_paid"] = payer_summary["avg_paid"].round(1)
         payer_summary["total_paid"] = payer_summary["total_paid"].round(1)
+
+        # ✅ Convert numeric fields to avoid type mismatches
+        payer_summary["avg_paid"] = pd.to_numeric(payer_summary["avg_paid"], errors="coerce")
+        payer_summary["total_paid"] = pd.to_numeric(payer_summary["total_paid"], errors="coerce")
+        payer_summary["total_claims"] = pd.to_numeric(payer_summary["total_claims"], errors="coerce")
 
         # ✅ Add Grand Total Row
         grand_total = pd.DataFrame({

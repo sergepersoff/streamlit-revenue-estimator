@@ -71,11 +71,24 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # ✅ Display Summary Table
-        st.subheader(f"Summary for {selected_insurance}")
-        st.write(payer_summary)
+        # 📌 Add toggle for compact view in the sidebar
+        st.sidebar.header("Display Options")
+        compact_view = st.sidebar.checkbox("Compact View", value=False, help="Hide charge descriptions in the summary table")
 
-        # 📌 **Update Procedure Selection to Only Show Procedures for Selected Insurance**
+        # ✅ Display Summary Table (with or without charge_description based on toggle)
+        st.subheader(f"Summary for {selected_insurance}")
+        
+        # Create a display version of the summary table based on compact view setting
+        if compact_view:
+            # Remove charge_description column for compact view
+            display_summary = payer_summary[["charge_code", "avg_paid", "total_paid", "total_claims"]]
+        else:
+            # Show all columns for normal view
+            display_summary = payer_summary
+            
+        st.write(display_summary)
+
+        # 📌 Always keep full procedure info for the dropdown, regardless of compact view
         payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
         procedure_options = payer_summary[payer_summary["charge_code"] != "GRAND TOTAL"]["procedure_display"].unique()  # Exclude Grand Total from dropdown
 

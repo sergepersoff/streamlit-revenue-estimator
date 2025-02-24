@@ -23,7 +23,7 @@ try:
         # ✅ Ensure 'paid' is always positive
         df["paid"] = df["paid"].abs()
 
-        # ✅ Remove procedures where 'paid' = 0
+        # ✅ Remove procedures where 'paid` = 0
         df = df[df["paid"] > 0]
 
         # ✅ Streamlit App Layout
@@ -33,7 +33,9 @@ try:
         st.sidebar.header("Filter by Date")
         min_date = df["date"].min()
         max_date = df["date"].max()
-        start_date, end_date = st.sidebar.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
+        start_date, end_date = st.sidebar.date_input(
+            "Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date
+        )
 
         # ✅ Filter data based on selected date range
         df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
@@ -69,13 +71,15 @@ try:
 
         # ✅ Display Summary Table (Without `charge_description`)
         st.subheader(f"Summary for {selected_insurance}")
-        st.write(
+        st.dataframe(
             payer_summary.rename(columns={
                 "charge_code": "CPT Code",
                 "avg_paid": "Avg Paid ($)",
                 "total_paid": "Total Paid ($)",
                 "total_claims": "Claims"
-            })
+            }),
+            hide_index=True,
+            use_container_width=True
         )
 
         # 📌 **Update Procedure Selection to Show CPT Code + Description**
@@ -88,18 +92,21 @@ try:
         # ✅ Extract Selected CPT Code & Procedure
         selected_cpt_code, selected_procedure_desc = selected_procedure.split(" - ", 1)
 
-        # ✅ Filter Data for Selected Procedure
-        filtered_data = payer_summary[payer_summary["charge_code"] == selected_cpt_code]
+        # ✅ Filter Data for Selected Procedure (Using `df_insurance_filtered`, not payer_summary)
+        filtered_data = df_insurance_filtered[
+            (df_insurance_filtered["charge_code"] == selected_cpt_code) &
+            (df_insurance_filtered["charge_description"] == selected_procedure_desc)
+        ]
 
         # ✅ Get the default total_claims for the selected procedure
-        default_claims = int(filtered_data["total_claims"].values[0]) if not filtered_data.empty else 1
+        total_claims = len(filtered_data) if not filtered_data.empty else 1
 
         # 📌 **Enter Estimated Procedure Volume (Defaults to total_claims)**
-        entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=default_claims)
+        entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=total_claims)
 
         # ✅ Calculate Projected Revenue
         if not filtered_data.empty:
-            avg_payment_per_procedure = filtered_data["avg_paid"].values[0]
+            avg_payment_per_procedure = filtered_data["paid"].mean().round(1)
             projected_revenue = avg_payment_per_procedure * entered_volume
             st.subheader(f"Projected Revenue: ${projected_revenue:,.2f}")
         else:

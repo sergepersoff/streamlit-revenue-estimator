@@ -71,9 +71,25 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # ✅ Display Summary Table
+        # 📱 **Mobile-Friendly Display Options**
+        compact_view = st.checkbox("Enable Compact View (Mobile-Friendly)", value=True)
+
+        if compact_view:
+            # **Show only essential data in stacked format**
+            payer_summary_display = payer_summary.rename(columns={
+                "charge_code": "CPT Code",
+                "charge_description": "Procedure",
+                "avg_paid": "Avg Paid ($)",
+                "total_paid": "Total Paid ($)",
+                "total_claims": "Claims"
+            })[["CPT Code", "Procedure", "Avg Paid ($)", "Total Paid ($)", "Claims"]]
+        else:
+            # **Show full dataset in normal table format**
+            payer_summary_display = payer_summary
+
+        # ✅ Display Summary Table using `st.dataframe()` for better mobile scaling
         st.subheader(f"Summary for {selected_insurance}")
-        st.write(payer_summary)
+        st.dataframe(payer_summary_display, hide_index=True, use_container_width=True)
 
         # 📌 **Update Procedure Selection to Only Show Procedures for Selected Insurance**
         payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]

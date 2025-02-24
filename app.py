@@ -5,8 +5,8 @@ import streamlit as st
 file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/ABC%20Billing%20report%20through%2002112024%20by%20DOS%20compiled.csv"
 
 try:
-    df = pd.read_csv(file_url, dtype={"charge_code": str})  
-    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  
+    df = pd.read_csv(file_url, dtype={"charge_code": str})  # ✅ Force 'charge_code' (CPT) as string
+    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  # ✅ Normalize column names
 
     # ✅ Convert the 'DATE' column to datetime format
     if "date" in df.columns:
@@ -69,24 +69,18 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # 📱 **Mobile-Friendly Display Options**
-        compact_view = st.checkbox("Enable Compact View (Mobile-Friendly)", value=True)
-
-        if compact_view:
-            # **Show only essential data in stacked format**
-            payer_summary_display = payer_summary.rename(columns={
-                "charge_code": "CPT",
-                "avg_paid": "Avg Paid ($)",
-                "total_paid": "Total Paid ($)",
-                "total_claims": "Claims"
-            })[["CPT", "Avg Paid ($)", "Total Paid ($)", "Claims"]]
-        else:
-            # **Show full dataset in normal table format**
-            payer_summary_display = payer_summary
-
-        # ✅ Display Summary Table using `st.dataframe()` for better mobile scaling
+        # ✅ Adaptive Resolution: Expandable & Scrollable Summary
         with st.expander(f"📊 View Summary for {selected_insurance}"):
-            st.dataframe(payer_summary_display, hide_index=True, use_container_width=True)
+            st.dataframe(
+                payer_summary.rename(columns={
+                    "charge_code": "CPT Code",
+                    "avg_paid": "Avg Paid ($)",
+                    "total_paid": "Total Paid ($)",
+                    "total_claims": "Claims"
+                }),
+                hide_index=True,
+                use_container_width=True
+            )
 
         # 📌 **Update Procedure Selection to Show CPT Code + Description**
         procedure_mapping = df_insurance_filtered[["charge_code", "charge_description"]].drop_duplicates()

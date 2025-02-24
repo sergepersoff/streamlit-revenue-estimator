@@ -20,10 +20,13 @@ try:
     if not required_columns.issubset(df.columns):
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
+        # ✅ Force 'charge_code' (CPT) as a string again, just in case
+        df["charge_code"] = df["charge_code"].astype(str)
+
         # ✅ Ensure 'paid' is always positive
         df["paid"] = df["paid"].abs()
 
-        # ✅ Remove procedures where 'paid` = 0
+        # ✅ Remove procedures where 'paid' = 0
         df = df[df["paid"] > 0]
 
         # ✅ Streamlit App Layout
@@ -33,9 +36,7 @@ try:
         st.sidebar.header("Filter by Date")
         min_date = df["date"].min()
         max_date = df["date"].max()
-        start_date, end_date = st.sidebar.date_input(
-            "Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date
-        )
+        start_date, end_date = st.sidebar.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
 
         # ✅ Filter data based on selected date range
         df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
@@ -47,7 +48,7 @@ try:
         # ✅ Filter Procedures Based on Selected Insurance
         df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
 
-        # ✅ Summary Table for Selected Insurance
+        # ✅ Summary Table for Selected Insurance (EXCLUDES $0 Payments)
         payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(
             avg_paid=("paid", "mean"),
             total_paid=("paid", "sum"),
@@ -70,18 +71,11 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # 📱 **Compact View Toggle**
-        compact_view = st.checkbox("Enable Compact View (Mobile-Friendly)", value=False)
+        # ✅ Display Summary Table
+        st.subheader(f"Summary for {selected_insurance}")
+        st.write(payer_summary)
 
-        if compact_view:
-            compact_payer_summary = payer_summary[["charge_code", "avg_paid", "total_paid", "total_claims"]]
-            st.subheader(f"Compact Summary for {selected_insurance}")
-            st.dataframe(compact_payer_summary, hide_index=True, use_container_width=True)
-        else:
-            st.subheader(f"Full Summary for {selected_insurance}")
-            st.dataframe(payer_summary, hide_index=True, use_container_width=True)
-
-        # 📌 **Update Procedure Selection to Show CPT Code + Description**
+        # 📌 **Update Procedure Selection to Only Show Procedures for Selected Insurance**
         payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
         procedure_options = payer_summary[payer_summary["charge_code"] != "GRAND TOTAL"]["procedure_display"].unique()  # Exclude Grand Total from dropdown
 

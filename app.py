@@ -70,17 +70,11 @@ try:
         # ✅ Append Grand Total to Summary Table
         payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
 
-        # 📱 **Compact View Toggle**
+        # 📱 **Compact View Toggle (Does NOT Remove Any Fields, Just Hides Some Columns in Display)**
         compact_view = st.checkbox("Enable Compact View (Mobile-Friendly)", value=False)
 
-        # ✅ Adjust Summary Table Display Based on View Mode
         if compact_view:
-            payer_summary_display = payer_summary.rename(columns={
-                "charge_code": "CPT",
-                "avg_paid": "Avg Paid ($)",
-                "total_paid": "Total Paid ($)",
-                "total_claims": "Claims"
-            })[["CPT", "Avg Paid ($)", "Total Paid ($)", "Claims"]]
+            payer_summary_display = payer_summary[["charge_code", "avg_paid", "total_paid", "total_claims"]]
         else:
             payer_summary_display = payer_summary
 

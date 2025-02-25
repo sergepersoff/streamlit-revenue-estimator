@@ -39,10 +39,6 @@ try:
         # ✅ Filter data based on selected date range
         df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
 
-        # 📌 **Grand Total of All Payments**
-        grand_total_paid = df_filtered["paid"].sum()
-        st.metric(label="💰 Total Payments Across All Insurances", value=f"${grand_total_paid:,.2f}")
-
         # 📌 **Select Insurance (Includes "All Insurances" Option)**
         insurance_options = ["All Insurances"] + list(df_filtered["insurance"].unique())
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
@@ -52,6 +48,10 @@ try:
             df_insurance_filtered = df_filtered  # Show all insurances
         else:
             df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
+
+        # 📌 **Dynamically Update "Paid" Metric**
+        total_paid_selected = df_insurance_filtered["paid"].sum()
+        st.metric(label="Paid", value=f"${total_paid_selected:,.2f}")
 
         # ✅ Summary Table for Selected Insurance(s)
         payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(

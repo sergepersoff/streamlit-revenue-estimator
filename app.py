@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # ✅ Load the dataset from GitHub
 file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/ABC%20Billing%20report%20through%2002112024%20by%20DOS%20compiled.csv"
@@ -56,89 +56,56 @@ try:
         visits_over_time = df_insurance_filtered.groupby("date")["account"].nunique().reset_index()
         visits_over_time = visits_over_time.sort_values("date")
 
-        # ✅ Dark mode styling
-        plt.style.use("dark_background")
+        # ✅ Calculate Total Visits
+        total_visits = visits_over_time["account"].sum()
+        st.metric(label="Total Visits", value=f"{total_visits:,}")
 
-        # ✅ Plot Line Chart
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(visits_over_time["date"], visits_over_time["account"], marker="o", linestyle="-", color="deepskyblue")
+        # ✅ Plot Interactive Line Chart using Plotly
+        fig_visits = px.line(
+            visits_over_time,
+            x="date",
+            y="account",
+            markers=True,
+            title=f"Visits Over Time ({selected_insurance})",
+            labels={"account": "Unique Visits", "date": "Date of Service (DOS)"},
+            template="plotly_dark",  # ✅ Dark mode theme
+        )
 
-        # ✅ Add labels
-        ax.set_xlabel("Date of Service (DOS)")
-        ax.set_ylabel("Unique Visits")
-        ax.set_title(f"Visits Over Time ({selected_insurance})")
+        # ✅ Customize hover tooltip
+        fig_visits.update_traces(
+            hovertemplate="<b>Date:</b> %{x}<br><b>Visits:</b> %{y}<extra></extra>"
+        )
 
-        # ✅ Show the plot
-        st.pyplot(fig)
+        # ✅ Display the plot
+        st.plotly_chart(fig_visits, use_container_width=True)
 
         # 📌 **Dynamically Update "Paid" Metric**
         total_paid_selected = df_insurance_filtered["paid"].sum()
         st.metric(label="Paid", value=f"${total_paid_selected:,.2f}")
 
-        # ✅ Summary Table for Selected Insurance(s)
-        payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(
-            avg_paid=("paid", "mean"),
-            total_paid=("paid", "sum"),
-            total_claims=("charge_code", "count")
-        ).reset_index()
+        # 📊 **Total Payments Per CPT Code (Filtered by Date & Insurance)**
+        st.subheader("📊 Total Payments Per CPT Code")
 
-        # ✅ Round avg_paid and total_paid to 1 decimal place
-        payer_summary["avg_paid"] = payer_summary["avg_paid"].round(1)
-        payer_summary["total_paid"] = payer_summary["total_paid"].round(1)
+        # ✅ Aggregate total paid per CPT code based on insurance selection
+        cpt_totals = df_insurance_filtered.groupby("charge_code")["paid"].sum().reset_index()
 
-        # ✅ Add Grand Total Row for the selected insurance(s)
-        grand_total = pd.DataFrame({
-            "charge_code": ["GRAND TOTAL"],
-            "charge_description": [""],
-            "avg_paid": [payer_summary["avg_paid"].mean().round(1)],
-            "total_paid": [payer_summary["total_paid"].sum().round(1)],
-            "total_claims": [payer_summary["total_claims"].sum()]
-        })
+        # ✅ Sort by highest paid first
+        cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
 
-        # ✅ Append Grand Total to Summary Table
-        payer_summary = pd.concat([payer_summary, grand_total], ignore_index=True)
+        # ✅ Plot Interactive Bar Chart using Plotly
+        fig_cpt = px.bar(
+            cpt_totals,
+            x="paid",
+            y="charge_code",
+            orientation="h",
+            title=f"Total Payments Per CPT Code ({selected_insurance})",
+            labels={"paid": "Total Paid ($)", "charge_code": "CPT Code"},
+            template="plotly_dark",  # ✅ Dark mode theme
+            text_auto=".2s"  # ✅ Show values on bars
+        )
 
-        # 📱 **Compact View Toggle**
-        st.sidebar.header("Display Options")
-        compact_view = st.sidebar.checkbox("Compact View", value=False, help="Hide charge descriptions in the summary table")
-
-        # ✅ Display Summary Table
-        st.subheader(f"Summary for {selected_insurance}")
-        if compact_view:
-            display_summary = payer_summary[["charge_code", "avg_paid", "total_paid", "total_claims"]]
-        else:
-            display_summary = payer_summary
-            
-        st.dataframe(display_summary, hide_index=True, use_container_width=True)
-
-        # 📌 **Update Procedure Selection to Show CPT Code + Description**
-        payer_summary["procedure_display"] = payer_summary["charge_code"] + " - " + payer_summary["charge_description"]
-        procedure_options = payer_summary[payer_summary["charge_code"] != "GRAND TOTAL"]["procedure_display"].unique()
-
-        selected_procedure = st.selectbox("Select Procedure (CPT - Description):", procedure_options)
-
-        # ✅ Extract Selected CPT Code & Procedure
-        selected_cpt_code, selected_procedure_desc = selected_procedure.split(" - ", 1)
-
-        # ✅ Filter Data for Selected Procedure
-        filtered_data = payer_summary[
-            (payer_summary["charge_code"] == selected_cpt_code) &
-            (payer_summary["charge_description"] == selected_procedure_desc)
-        ]
-
-        # ✅ Get the default total_claims for the selected procedure
-        default_claims = int(filtered_data["total_claims"].values[0]) if not filtered_data.empty else 1
-
-        # 📌 **Enter Estimated Procedure Volume (Defaults to total_claims)**
-        entered_volume = st.number_input("Enter Estimated Procedure Volume:", min_value=1, value=default_claims)
-
-        # ✅ Calculate Projected Revenue
-        if not filtered_data.empty:
-            avg_payment_per_procedure = filtered_data["avg_paid"].values[0]
-            projected_revenue = avg_payment_per_procedure * entered_volume
-            st.subheader(f"Projected Revenue: ${projected_revenue:,.2f}")
-        else:
-            st.warning("No data available for selected procedure and insurance.")
+        # ✅ Display the plot
+        st.plotly_chart(fig_cpt, use_container_width=True)
 
 except Exception as e:
     st.error(f"Error loading CSV file: {e}")

@@ -127,8 +127,11 @@ try:
         # ✅ Dark mode styling
         plt.style.use("dark_background")
 
+        # ✅ Increase figure height dynamically based on number of CPT codes
+        fig_height = max(6, len(cpt_totals) * 0.5)  # Adjust height dynamically
+        fig, ax = plt.subplots(figsize=(12, fig_height))
+
         # ✅ Plot **horizontal** bar chart (CPT codes on left)
-        fig, ax = plt.subplots(figsize=(12, 6))
         bars = ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="deepskyblue")
 
         # ✅ Add value labels to each bar

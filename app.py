@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 file_url = "https://raw.githubusercontent.com/sergepersoff/streamlit-revenue-estimator/main/ABC%20Billing%20report%20through%2002112024%20by%20DOS%20compiled.csv"
 
 try:
-    df = pd.read_csv(file_url, dtype={"charge_code": str})  # ✅ Ensure 'charge_code' (CPT) is a string
+    df = pd.read_csv(file_url, dtype={"charge_code": str, "account": str})  # ✅ Ensure 'charge_code' & 'account' are strings
     df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  # ✅ Normalize column names
 
     # ✅ Convert 'DATE' column to datetime
@@ -17,7 +17,7 @@ try:
         st.stop()
 
     # ✅ Ensure required columns exist
-    required_columns = {"insurance", "charge_description", "charge_code", "paid", "date"}
+    required_columns = {"account", "insurance", "charge_description", "charge_code", "paid", "date"}
     if not required_columns.issubset(df.columns):
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
@@ -48,6 +48,28 @@ try:
             df_insurance_filtered = df_filtered  # Show all insurances
         else:
             df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
+
+        # 📊 **Visits Over Time (Unique Accounts per DOS)**
+        st.subheader("📈 Visits Over Time (Filtered by Date & Insurance)")
+
+        # ✅ Count unique accounts per DOS
+        visits_over_time = df_insurance_filtered.groupby("date")["account"].nunique().reset_index()
+        visits_over_time = visits_over_time.sort_values("date")
+
+        # ✅ Dark mode styling
+        plt.style.use("dark_background")
+
+        # ✅ Plot Line Chart
+        fig, ax = plt.subplots(figsize=(12, 5))
+        ax.plot(visits_over_time["date"], visits_over_time["account"], marker="o", linestyle="-", color="deepskyblue")
+
+        # ✅ Add labels
+        ax.set_xlabel("Date of Service (DOS)")
+        ax.set_ylabel("Unique Visits")
+        ax.set_title(f"Visits Over Time ({selected_insurance})")
+
+        # ✅ Show the plot
+        st.pyplot(fig)
 
         # 📌 **Dynamically Update "Paid" Metric**
         total_paid_selected = df_insurance_filtered["paid"].sum()
@@ -117,35 +139,6 @@ try:
             st.subheader(f"Projected Revenue: ${projected_revenue:,.2f}")
         else:
             st.warning("No data available for selected procedure and insurance.")
-
-        # 📊 **Dark-Themed Bar Chart with CPT Codes on Left (Y-Axis)**
-        st.subheader("📊 Total Payments Per CPT Code (Filtered by Date & Insurance)")
-
-        # ✅ Aggregate total paid per CPT code based on insurance selection
-        cpt_totals = df_insurance_filtered.groupby("charge_code")["paid"].sum().reset_index()
-
-        # ✅ Sort by highest paid first
-        cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
-
-        # ✅ Dark mode styling
-        plt.style.use("dark_background")
-
-        # ✅ Increase figure height dynamically based on number of CPT codes
-        fig_height = max(6, len(cpt_totals) * 0.5)  # Adjust height dynamically
-        fig, ax = plt.subplots(figsize=(12, fig_height))
-
-        # ✅ Plot **horizontal** bar chart (CPT codes on left)
-        bars = ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="deepskyblue")
-
-        # ✅ Add value labels to each bar
-        for bar in bars:
-            ax.text(bar.get_width(), bar.get_y() + bar.get_height() / 2,
-                    f"${bar.get_width():,.0f}", va='center', ha='left', fontsize=10, color='white')
-
-        ax.set_xlabel("Total Paid ($)")
-        ax.set_ylabel("CPT Code")
-        ax.set_title(f"Total Payments Per CPT Code ({selected_insurance})")
-        st.pyplot(fig)
 
 except Exception as e:
     st.error(f"Error loading CSV file: {e}")

@@ -1,4 +1,4 @@
-import pandas as pd
+11111111111111111111111111111111111import pandas as pd
 import streamlit as st
 import plotly.express as px
 
@@ -19,9 +19,8 @@ try:
         st.error("CSV file is missing required columns. Please check your dataset.")
     else:
         df["charge_code"] = df["charge_code"].astype(str)
-        df["paid"] = df["paid"].abs()  # ✅ Ensure 'paid' is always positive
-        df = df[df["paid"] > 0]  # ✅ Remove rows where 'paid' is 0
-
+        df["paid"] = df["paid"].abs()  
+        df = df[df["paid"] > 0]  
         st.title("Revenue Estimation Tool")
 
         st.sidebar.header("Filter by Date")

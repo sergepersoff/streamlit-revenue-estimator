@@ -115,18 +115,21 @@ try:
         else:
             st.warning("No data available for selected procedure and insurance.")
 
-        # 📊 **Static Histogram of All Procedures Paid (Filtered by Date)**
-        st.subheader("📊 Payments Distribution Across All Procedures (Filtered by Date)")
+        # 📊 **Static Horizontal Histogram of Payments by CPT Code**
+        st.subheader("📊 Total Payments Per CPT Code (Filtered by Date)")
 
-        # ✅ Aggregate total paid per procedure across all insurances
-        procedure_totals = df_filtered.groupby("charge_description")["paid"].sum().reset_index()
+        # ✅ Aggregate total paid per CPT code
+        cpt_totals = df_filtered.groupby("charge_code")["paid"].sum().reset_index()
 
-        # ✅ Plot the histogram
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.barh(procedure_totals["charge_description"], procedure_totals["paid"], color="skyblue")
+        # ✅ Sort by highest paid first
+        cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
+
+        # ✅ Plot horizontal bar chart
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="dodgerblue")
         ax.set_xlabel("Total Paid ($)")
-        ax.set_ylabel("Procedure")
-        ax.set_title("Total Payments Per Procedure (Filtered by Date)")
+        ax.set_ylabel("CPT Code")
+        ax.set_title("Total Payments Per CPT Code (Filtered by Date)")
         st.pyplot(fig)
 
 except Exception as e:

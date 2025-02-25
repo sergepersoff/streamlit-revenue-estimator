@@ -43,14 +43,17 @@ try:
         grand_total_paid = df_filtered["paid"].sum()
         st.metric(label="💰 Total Payments Across All Insurances", value=f"${grand_total_paid:,.2f}")
 
-        # 📌 **Select Insurance**
-        insurance_options = df_filtered["insurance"].unique()
+        # 📌 **Select Insurance (Includes "All Insurances" Option)**
+        insurance_options = ["All Insurances"] + list(df_filtered["insurance"].unique())
         selected_insurance = st.selectbox("Select Insurance:", insurance_options)
 
-        # ✅ Filter Procedures Based on Selected Insurance
-        df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
+        # ✅ Filter Data Based on Insurance Selection
+        if selected_insurance == "All Insurances":
+            df_insurance_filtered = df_filtered  # Show all insurances
+        else:
+            df_insurance_filtered = df_filtered[df_filtered["insurance"] == selected_insurance]
 
-        # ✅ Summary Table for Selected Insurance
+        # ✅ Summary Table for Selected Insurance(s)
         payer_summary = df_insurance_filtered.groupby(["charge_code", "charge_description"]).agg(
             avg_paid=("paid", "mean"),
             total_paid=("paid", "sum"),
@@ -61,7 +64,7 @@ try:
         payer_summary["avg_paid"] = payer_summary["avg_paid"].round(1)
         payer_summary["total_paid"] = payer_summary["total_paid"].round(1)
 
-        # ✅ Add Grand Total Row for the selected insurance
+        # ✅ Add Grand Total Row for the selected insurance(s)
         grand_total = pd.DataFrame({
             "charge_code": ["GRAND TOTAL"],
             "charge_description": [""],
@@ -116,10 +119,10 @@ try:
             st.warning("No data available for selected procedure and insurance.")
 
         # 📊 **Dark-Themed Bar Chart with CPT Codes on Left (Y-Axis)**
-        st.subheader("📊 Total Payments Per CPT Code (Filtered by Date)")
+        st.subheader("📊 Total Payments Per CPT Code (Filtered by Date & Insurance)")
 
-        # ✅ Aggregate total paid per CPT code
-        cpt_totals = df_filtered.groupby("charge_code")["paid"].sum().reset_index()
+        # ✅ Aggregate total paid per CPT code based on insurance selection
+        cpt_totals = df_insurance_filtered.groupby("charge_code")["paid"].sum().reset_index()
 
         # ✅ Sort by highest paid first
         cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
@@ -141,7 +144,7 @@ try:
 
         ax.set_xlabel("Total Paid ($)")
         ax.set_ylabel("CPT Code")
-        ax.set_title("Total Payments Per CPT Code (Filtered by Date)")
+        ax.set_title(f"Total Payments Per CPT Code ({selected_insurance})")
         st.pyplot(fig)
 
 except Exception as e:

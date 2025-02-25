@@ -124,9 +124,15 @@ try:
         # ✅ Sort by highest paid first
         cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
 
-        # ✅ Plot horizontal bar chart
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="dodgerblue")
+        # ✅ Plot horizontal bar chart with values
+        fig, ax = plt.subplots(figsize=(12, 8))
+        bars = ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="dodgerblue")
+
+        # ✅ Add value labels to each bar
+        for bar in bars:
+            ax.text(bar.get_width(), bar.get_y() + bar.get_height()/2,
+                    f"${bar.get_width():,.0f}", va='center', ha='left', fontsize=10, color='black')
+
         ax.set_xlabel("Total Paid ($)")
         ax.set_ylabel("CPT Code")
         ax.set_title("Total Payments Per CPT Code (Filtered by Date)")

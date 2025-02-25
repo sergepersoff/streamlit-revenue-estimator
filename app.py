@@ -115,33 +115,29 @@ try:
         else:
             st.warning("No data available for selected procedure and insurance.")
 
-        # 📊 **Dark-Themed Bar Chart with CPT Codes on X-Axis**
+        # 📊 **Dark-Themed Bar Chart with CPT Codes on Left (Y-Axis)**
         st.subheader("📊 Total Payments Per CPT Code (Filtered by Date)")
 
         # ✅ Aggregate total paid per CPT code
         cpt_totals = df_filtered.groupby("charge_code")["paid"].sum().reset_index()
 
         # ✅ Sort by highest paid first
-        cpt_totals = cpt_totals.sort_values(by="paid", ascending=False)
+        cpt_totals = cpt_totals.sort_values(by="paid", ascending=True)
 
         # ✅ Dark mode styling
         plt.style.use("dark_background")
 
-        # ✅ Plot bar chart (X-axis = CPT Codes, Y-axis = Total Paid)
+        # ✅ Plot **horizontal** bar chart (CPT codes on left)
         fig, ax = plt.subplots(figsize=(12, 6))
-        bars = ax.bar(cpt_totals["charge_code"], cpt_totals["paid"], color="deepskyblue")
-
-        # ✅ Rotate X-axis labels to avoid overlap
-        ax.set_xticks(range(len(cpt_totals["charge_code"])))
-        ax.set_xticklabels(cpt_totals["charge_code"], rotation=45, ha="right")
+        bars = ax.barh(cpt_totals["charge_code"], cpt_totals["paid"], color="deepskyblue")
 
         # ✅ Add value labels to each bar
         for bar in bars:
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                    f"${bar.get_height():,.0f}", ha='center', va='bottom', fontsize=10, color='white')
+            ax.text(bar.get_width(), bar.get_y() + bar.get_height() / 2,
+                    f"${bar.get_width():,.0f}", va='center', ha='left', fontsize=10, color='white')
 
-        ax.set_xlabel("CPT Code")
-        ax.set_ylabel("Total Paid ($)")
+        ax.set_xlabel("Total Paid ($)")
+        ax.set_ylabel("CPT Code")
         ax.set_title("Total Payments Per CPT Code (Filtered by Date)")
         st.pyplot(fig)
 
